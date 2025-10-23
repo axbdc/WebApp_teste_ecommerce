@@ -78,7 +78,9 @@
         src="mouse.glb"
         alt="Modelo 3D do Rato de Gaming para Realidade Aumentada"
         ar
-        ar-modes="webxr scene-viewer quick-look"
+        /* PRIORIZA WebXR (câmara dentro do browser) para melhor controlo sobre a interação. 
+           Os outros modos são mantidos como fallback. */
+        ar-modes="webxr quick-look scene-viewer"
         shadow-intensity="1"
         camera-controls
         touch-action="pan-y"
@@ -122,7 +124,7 @@
             }
 
             // 1. Ouvir o evento de clique/toque no modelo 3D.
-            // O evento 'click' é acionado tanto no modo 3D como depois de interagir com o modelo em RA.
+            // O evento 'click' é acionado tanto no modo 3D como depois de interagir com o modelo em RA (SE for WebXR).
             modelViewer.addEventListener('click', (event) => {
                 // Verifica se o modelo já está carregado
                 if (!modelViewer.loaded) {
@@ -133,10 +135,10 @@
                 // Redirecionamento lógico
                 showMessage("Redirecionando para a loja online Logitech G...");
                 
-                // Para ativar o redirecionamento real, descomente a linha abaixo:
-                // window.location.href = storeURL; 
+                // *** CORREÇÃO: Linha de redirecionamento descomentada para funcionar. ***
+                window.location.href = storeURL; 
                 
-                console.log(`A redirecionar para (simulação): ${storeURL}`);
+                console.log(`A redirecionar para: ${storeURL}`);
             });
 
             // 2. Verifica a compatibilidade AR
