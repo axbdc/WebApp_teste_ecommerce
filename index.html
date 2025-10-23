@@ -87,7 +87,8 @@
         // Atributo opcional para definir a posição inicial da câmara
         camera-orbit="0deg 90deg 1m" 
     >
-        <!-- Botão customizado para iniciar a experiência AR -->
+        <!-- Botão customizado para iniciar a experiência AR. 
+             Este botão, devido ao atributo slot="ar-button", é o que ativa a câmara/RA. -->
         <button slot="ar-button" class="ar-button-style">
             Ver no seu Espaço (RA)
         </button>
@@ -99,7 +100,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const modelViewer = document.getElementById('ar-model');
-            // **IMPORTANTE:** O URL foi atualizado para o link fornecido.
+            // O URL foi atualizado para o link fornecido.
             const storeURL = "https://www.logitechg.com/pt-br"; 
 
             /**
@@ -132,17 +133,13 @@
                 // Redirecionamento lógico
                 showMessage("Redirecionando para a loja online Logitech G...");
                 
-                // Se a intenção é redirecionar, deve descomentar a linha abaixo.
-                // Atualmente está apenas a ser registado na consola para demonstração.
+                // Para ativar o redirecionamento real, descomente a linha abaixo:
                 // window.location.href = storeURL; 
                 
                 console.log(`A redirecionar para (simulação): ${storeURL}`);
-                
-                // Nota: O redirecionamento real deve ser habilitado apenas quando a app estiver finalizada.
             });
 
             // 2. Verifica a compatibilidade AR
-            // A verificação ocorre após o componente Model Viewer ser inicializado.
             modelViewer.addEventListener('load', () => {
                 if (modelViewer.arStatus === 'not-presenting' && modelViewer.arMode === 'none') {
                     // Isto irá capturar dispositivos que não suportam AR.
