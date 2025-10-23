@@ -78,9 +78,9 @@
         src="mouse.glb"
         alt="Modelo 3D do Rato de Gaming para Realidade Aumentada"
         ar
-        /* CORREÇÃO: Força o uso do WebXR para abrir a câmara no navegador.
-           Remover 'quick-look' e 'scene-viewer' evita o uso de apps nativas. */
-        ar-modes="webxr"
+        /* CORREÇÃO PARA MOSTRAR O BOTÃO: Inclui fallbacks.
+           O WebXR continua a ser o primeiro a ser tentado. */
+        ar-modes="webxr quick-look scene-viewer"
         shadow-intensity="1"
         camera-controls
         touch-action="pan-y"
@@ -125,11 +125,10 @@
             
             // 1. Ouvir o evento de clique/toque no modelo 3D (área superior).
             modelViewer.addEventListener('click', (event) => {
-                // A verificação do target não é mais estritamente necessária aqui, 
-                // pois a propagação do botão AR é impedida abaixo. No entanto, é mantida 
-                // para ser redundante na prevenção de redirecionamentos indesejados.
-                if (event.target.id === 'ar-button') {
-                    console.log("Clique no botão AR. Não redirecionar.");
+                // Se o target do evento for o próprio model-viewer e não um elemento interno, redireciona.
+                // Isto implementa a área clicável "acima do botão".
+                if (event.target !== modelViewer) {
+                    // Impede o redirecionamento se o clique vier de um elemento aninhado (como o botão AR)
                     return; 
                 }
 
