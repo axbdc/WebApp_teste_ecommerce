@@ -45,6 +45,11 @@
             font-weight: bold;
             transition: opacity 0.3s ease;
         }
+        
+        /* NOVO ESTILO: Força a visibilidade do slot do botão AR, mesmo que o WebXR não seja totalmente suportado. */
+        model-viewer::part(default-ar-button) {
+            display: block !important; 
+        }
 
         /* Estilo para o botão customizado de Realidade Aumentada (AR) */
         .ar-button-style {
@@ -78,8 +83,8 @@
         src="mouse.glb"
         alt="Modelo 3D do Rato de Gaming para Realidade Aumentada"
         ar
-        /* PRIORIDADE: WebXR (câmara na web app) é o primeiro modo a ser tentado. */
-        ar-modes="webxr quick-look scene-viewer" 
+        /* CORREÇÃO: Força APENAS WebXR para evitar Quick Look. O botão é forçado a aparecer via CSS. */
+        ar-modes="webxr" 
         shadow-intensity="1"
         camera-controls
         touch-action="pan-y"
@@ -122,15 +127,14 @@
             
             // --- CÓDIGO DE LÓGICA DE COMPRA E AR ---
 
-            // 1. ISOLAMENTO DO BOTÃO AR: Este é o ponto chave para impedir o redirecionamento.
-            // Quando o botão AR é clicado, impedimos que o evento chegue ao modelViewer principal.
+            // 1. ISOLAMENTO DO BOTÃO AR E ATIVAÇÃO MANUAL:
             if (arButton) {
                 arButton.addEventListener('click', (e) => {
-                    // IMPEDE que o evento de clique suba para o modelViewer (listener abaixo)
+                    // IMPEDE que o evento de clique suba para o modelViewer (listener de compra)
                     e.stopPropagation(); 
                     console.log("AR Button Clicked. Propagation Stopped. Activating AR manually.");
                     
-                    // Ativa a RA nativamente através da API do model-viewer
+                    // Tenta ativar a RA nativamente (agora forçado a WebXR)
                     modelViewer.activateAR(); 
                 });
             }
@@ -138,8 +142,7 @@
             // 2. Ouvir o evento de clique/toque no MODELO 3D (APENAS para redirecionamento/compra).
             modelViewer.addEventListener('click', (event) => {
                 
-                // Se o clique veio do botão AR, ele foi interrompido no listener acima (e.stopPropagation), 
-                // por isso, qualquer clique que chegue aqui é um clique no modelo 3D.
+                // Se o clique veio do botão AR, ele foi interrompido no listener acima.
                 
                 if (!modelViewer.loaded) {
                     showMessage("O modelo 3D ainda está a carregar. Tente novamente.");
@@ -162,11 +165,10 @@
             // 4. Verifica a compatibilidade AR
             modelViewer.addEventListener('load', () => {
                 if (modelViewer.arMode === 'none') {
-                    showMessage("ATENÇÃO: A Realidade Aumentada não é suportada neste dispositivo/navegador.");
+                    // Mensagem mais específica, pois o Quick Look não é uma opção agora.
+                    showMessage("ATENÇÃO: WebXR (câmara na web app) não é suportado neste dispositivo/navegador.");
                 } else if (modelViewer.arModes.includes('webxr')) {
-                    showMessage("Modo AR disponível. Será dada prioridade à câmara da Web App (WebXR).");
-                } else {
-                    showMessage(`Dispositivo compatível. Modos AR disponíveis: ${modelViewer.arModes}.`);
+                    showMessage("Modo AR WebXR ativo. Clique no botão.");
                 }
             });
         });
