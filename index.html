@@ -100,9 +100,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const modelViewer = document.getElementById('ar-model');
-            const arButton = document.getElementById('ar-button');
+            // Removemos a necessidade de obter o arButton para evitar interferência.
             const storeURL = "https://www.logitechg.com/pt-br"; 
-            
+            let isARActivationPending = false; // Sinalizador para bloquear redirecionamento
+
             /**
              * Função para exibir mensagens temporárias ao utilizador (substitui alert()).
              * @param {string} message A mensagem a ser mostrada.
@@ -120,47 +121,49 @@
                 }, 3000); 
             }
             
-            // --- CORREÇÃO: INTERCETAÇÃO DO CLIQUE NO BOTÃO AR ---
-            // Isto impede que o clique no botão AR ative o listener de compra no modelViewer.
-            arButton.addEventListener('click', (event) => {
-                // **CRÍTICO:** Pára a propagação. Permite que o slot="ar-button" funcione.
-                event.stopPropagation(); 
+            // --- CÓDIGO DE LÓGICA DE COMPRA E AR ---
+
+            // 1. Ouvir o evento quando o modo AR é ativado (para feedback e sinalização).
+            modelViewer.addEventListener('activate-ar', (event) => {
+                // Ativa o sinalizador. O clique no botão AR desencadeia este evento.
+                isARActivationPending = true;
                 
-                console.log("Clique no botão AR intercetado. A propagação foi parada, a câmara será solicitada.");
-                
-                // O atributo slot="ar-button" faz a chamada nativa para abrir a câmara.
+                // Dá um tempo curto para o browser processar a transição AR
+                setTimeout(() => {
+                    isARActivationPending = false;
+                }, 100); 
+
+                showMessage("A câmara AR está a ser iniciada. Toque no ecrã para posicionar o modelo.");
+                console.log(`Modo AR ativado: ${event.detail.arMode}`);
             });
 
-            // 1. Ouvir o evento de clique/toque no MODELO 3D.
+
+            // 2. Ouvir o evento de clique/toque no MODELO 3D.
             modelViewer.addEventListener('click', (event) => {
                 
-                // Se o elemento clicado não for o próprio modelViewer, ignoramos.
-                if (event.target !== modelViewer) {
+                // Se o AR acabou de ser ativado, ignoramos o clique para evitar redirecionamento
+                if (isARActivationPending) {
+                    console.log("Clique ignorado: Ativação de AR pendente.");
                     return; 
                 }
 
-                // Se chegou aqui, o clique foi no MODELO 3D (área de cima).
+                // Se o clique foi no botão AR ou noutro elemento interno, o activate-ar já teria sido chamado.
+                // Aqui só processamos cliques que se destinam a "comprar".
+                
                 if (!modelViewer.loaded) {
                     showMessage("O modelo 3D ainda está a carregar. Tente novamente.");
                     return;
                 }
                 
-                // --- CÓDIGO DE REDIRECIONAMENTO PERMANECE COMENTADO ---
+                // --- CÓDIGO DE REDIRECIONAMENTO PERMANECE COMENTADO PARA TESTE ---
                 // showMessage("Redirecionando para a loja online Logitech G...");
                 // window.location.href = storeURL; 
                 // console.log(`A redirecionar para: ${storeURL}`);
-                // -------------------------------------------------------------
+                // ------------------------------------------------------------------
             });
             
-            // 2. Ouvir o evento quando o modo AR é ativado (para feedback).
-            modelViewer.addEventListener('activate-ar', (event) => {
-                showMessage("A câmara AR está a ser iniciada. Toque no ecrã para posicionar o modelo.");
-                console.log(`Modo AR ativado: ${event.detail.arMode}`);
-            });
-
             // 3. Verifica a compatibilidade AR (mantido para feedback do utilizador)
             modelViewer.addEventListener('load', () => {
-                // Se o AR não for compatível com nenhum dos modos.
                 if (modelViewer.arMode === 'none') {
                     showMessage("Apenas o modo 3D está disponível. O seu dispositivo não suporta Realidade Aumentada.");
                 } else {
