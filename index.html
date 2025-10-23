@@ -1,174 +1,176 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualizador AR de Produtos</title>
-    
-    <!-- Importa o Model Viewer da Google, essencial para o 3D e AR -->
-    <script type="module" 
-        src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
-    </script>
-
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AR Sem Marcador (WebXR)</title>
+    <!-- Incluir Tailwind CSS para estilizar o botão de entrada (opcional, mas útil) -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Estilos globais para garantir que o model-viewer ocupe todo o ecrã */
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-            font-family: 'Inter', Arial, sans-serif;
-        }
-        
-        /* O componente Model Viewer deve ser 100% da viewport */
-        model-viewer {
-            width: 100%;
-            height: 100%;
-            background-color: #f0f0f0; /* Fundo visível apenas em modo 3D */
-            border-radius: 0;
-        }
-
-        /* Estilo para a caixa de mensagem (substitui a função alert()) */
-        #message-box {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #ffc107;
-            color: #333;
-            padding: 12px 24px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            z-index: 1000;
-            display: none;
-            text-align: center;
-            font-weight: bold;
-            transition: opacity 0.3s ease;
-        }
-        
-        /* NOVO ESTILO: Força a visibilidade do slot do botão AR, mesmo que o WebXR não seja totalmente suportado. */
-        model-viewer::part(default-ar-button) {
-            display: block !important; 
-        }
-
-        /* Estilo para o botão customizado de Realidade Aumentada (AR) */
-        .ar-button-style {
-            background-color: #3B82F6; /* Azul Primário */
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 12px;
+        body { margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; }
+        /* O overlay é o botão de entrada em AR */
+        #ar-overlay {
             position: absolute;
-            bottom: 25px;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: all 0.2s ease-in-out;
+            z-index: 999;
+            pointer-events: none; /* Permite interações dentro do overlay */
         }
-        
-        .ar-button-style:hover {
-            background-color: #2563EB;
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+        .ar-button {
+            padding: 1rem 2rem;
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            cursor: pointer;
+            pointer-events: auto; /* Reativa a interação no botão */
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .ar-button:hover {
+            background-color: #2563eb;
         }
     </style>
-</head>
-<body>
-    
-    <!-- Componente principal que exibe o modelo 3D e ativa a Realidade Aumentada -->
-    <model-viewer 
-        id="ar-model"
-        src="mouse.glb"
-        alt="Modelo 3D do Rato de Gaming para Realidade Aumentada"
-        ar
-        /* CORREÇÃO: Força APENAS WebXR para evitar Quick Look. O botão é forçado a aparecer via CSS. */
-        ar-modes="webxr" 
-        shadow-intensity="1"
-        camera-controls
-        touch-action="pan-y"
-        auto-rotate
-        loading="eager"
-        // Atributo opcional para definir a posição inicial da câmara
-        camera-orbit="0deg 90deg 1m" 
-    >
-        <!-- Botão customizado para iniciar a experiência AR. -->
-        <button id="ar-button" slot="ar-button" class="ar-button-style">
-            Ver no seu Espaço (RA)
-        </button>
-    </model-viewer>
-    
-    <!-- Caixa para exibir mensagens ao utilizador -->
-    <div id="message-box"></div>
+
+    <!-- A-Frame (versão mais recente para melhor suporte a WebXR) -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <!-- A-Frame Extras para o glTF loader e animações -->
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
+    <!-- Manter scripts de gestos, úteis para manipular o modelo após a colocação -->
+    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const modelViewer = document.getElementById('ar-model');
-            const arButton = document.getElementById('ar-button'); // Obtém o botão AR
-            const storeURL = "https://www.logitechg.com/pt-br"; 
-            
-            /**
-             * Função para exibir mensagens temporárias ao utilizador (substitui alert()).
-             * @param {string} message A mensagem a ser mostrada.
-             */
-            function showMessage(message) {
-                const messageBox = document.getElementById('message-box');
-                messageBox.textContent = message;
-                messageBox.style.display = 'block';
-                setTimeout(() => {
-                    messageBox.style.opacity = 0;
-                    setTimeout(() => {
-                        messageBox.style.display = 'none';
-                        messageBox.style.opacity = 1; 
-                    }, 300); 
-                }, 3000); 
-            }
-            
-            // --- CÓDIGO DE LÓGICA DE COMPRA E AR ---
+        // Componente A-Frame para gerir a colocação do modelo via Hit Test do WebXR
+        AFRAME.registerComponent('ar-placement-helper', {
+            init: function () {
+                const sceneEl = this.el;
+                const model = document.querySelector('#model-entity');
+                const ring = document.querySelector('#placement-ring');
 
-            // 1. ISOLAMENTO DO BOTÃO AR E ATIVAÇÃO MANUAL:
-            if (arButton) {
-                arButton.addEventListener('click', (e) => {
-                    // IMPEDE que o evento de clique suba para o modelViewer (listener de compra)
-                    e.stopPropagation(); 
-                    console.log("AR Button Clicked. Propagation Stopped. Activating AR manually.");
-                    
-                    // Tenta ativar a RA nativamente (agora forçado a WebXR)
-                    modelViewer.activateAR(); 
+                // Garante que o modelo está invisível até ser colocado
+                model.setAttribute('visible', 'false');
+
+                // O evento 'ar-hit-test-update' é disparado pelo A-Frame no modo immersive-ar
+                // com a funcionalidade 'hit-test' ativada.
+                sceneEl.addEventListener('ar-hit-test-update', function (evt) {
+                    if (evt.detail.successful) {
+                        // Se for detetada uma superfície, move o anel de colocação para a posição detetada
+                        ring.setAttribute('visible', 'true');
+                        ring.object3D.position.copy(evt.detail.position);
+                    } else {
+                        // Se não for detetada nenhuma superfície, esconde o anel
+                        ring.setAttribute('visible', 'false');
+                    }
+                });
+
+                // Lógica de colocação do modelo ao tocar no ecrã (clique)
+                sceneEl.addEventListener('click', function (evt) {
+                    if (ring.getAttribute('visible')) {
+                        const position = ring.object3D.position;
+
+                        // Coloca o modelo na posição detetada e torna-o visível
+                        model.setAttribute('position', {
+                            x: position.x,
+                            y: position.y, // Ajustar a posição Y para que o modelo fique no chão
+                            z: position.z
+                        });
+                        model.setAttribute('visible', 'true');
+                        
+                        // Opcional: esconde o anel após a colocação
+                        ring.setAttribute('visible', 'false');
+                    } else {
+                        // Se não houver hit-test bem-sucedido, ignora o clique ou exibe uma mensagem
+                        console.log('Nenhuma superfície detetada para colocar o objeto.');
+                    }
                 });
             }
+        });
+    </script>
+</head>
 
-            // 2. Ouvir o evento de clique/toque no MODELO 3D (APENAS para redirecionamento/compra).
-            modelViewer.addEventListener('click', (event) => {
-                
-                // Se o clique veio do botão AR, ele foi interrompido no listener acima.
-                
-                if (!modelViewer.loaded) {
-                    showMessage("O modelo 3D ainda está a carregar. Tente novamente.");
-                    return;
-                }
-                
-                // --- CÓDIGO DE REDIRECIONAMENTO PERMANECE COMENTADO PARA TESTE ---
-                // showMessage("Redirecionando para a loja online Logitech G...");
-                // window.location.href = storeURL; 
-                // console.log(`A redirecionar para: ${storeURL}`);
-                // ------------------------------------------------------------------
-            });
+<body style="margin: 0; overflow: hidden;">
+    <!-- Overlay para o botão de "Entrar em AR", necessário para iniciar o WebXR em navegadores -->
+    <div id="ar-overlay">
+        <button class="ar-button" id="ar-button">
+            Iniciar RA (Apontar para o Chão)
+        </button>
+    </div>
+
+    <a-scene
+        vr-mode-ui="enabled: false;"
+        loading-screen="enabled: false;"
+        renderer="logarithmicDepthBuffer: true; antialias: true;"
+        id="scene"
+        embedded
+        gesture-detector
+        
+        <!-- Configuração para WebXR Immersive AR. O 'hit-test' permite a deteção de planos -->
+        webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #ar-overlay;"
+
+        <!-- Aplica o componente que faz o hit-testing e a colocação do modelo -->
+        ar-placement-helper
+    >
+        <a-assets>
+            <!-- Nota: Substitua 'assets/asset.glb' pelo caminho real do seu modelo -->
+            <a-asset-item
+                id="animated-asset"
+                src="mouse.glb"
+            ></a-asset-item>
+        </a-assets>
+
+        <!-- Anel de ajuda visual que se move na superfície detetada -->
+        <a-ring
+            id="placement-ring"
+            radius="0.1"
+            color="#FFFFFF"
+            opacity="0.7"
+            material="shader: flat; transparent: true"
+            rotation="-90 0 0"
+            visible="false"
+        ></a-ring>
+
+        <!-- A entidade do modelo 3D é colocada diretamente na cena, invisível inicialmente -->
+        <a-entity
+            id="model-entity"
+            gltf-model="#animated-asset"
+            scale="0.5 0.5 0.5"
+            animation-mixer="clip: *; loop: repeat"
+            class="clickable"
+            gesture-handler
+            visible="false"
+        ></a-entity>
+
+        <!-- A câmara do WebXR é gerida automaticamente, mas é bom ter uma fallback entity -->
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+        // Inicializa a funcionalidade WebXR no botão de entrada
+        document.addEventListener('DOMContentLoaded', () => {
+            const arButton = document.getElementById('ar-button');
+            const scene = document.getElementById('scene');
             
-            // 3. Ouvir o evento quando o modo AR é ativado (para feedback).
-            modelViewer.addEventListener('activate-ar', (event) => {
-                showMessage(`A câmara AR está a ser iniciada no modo: ${event.detail.arMode}.`);
-                console.log(`Modo AR ativado: ${event.detail.arMode}`);
-            });
+            // Certifica-se de que o botão só funciona quando o A-Frame está pronto
+            scene.addEventListener('loaded', () => {
+                if (arButton) {
+                    arButton.addEventListener('click', () => {
+                        // O A-Frame usa o DOM Overlay para iniciar a sessão AR
+                        if (scene.components.webxr.is= 'ar') {
+                            scene.components.webxr.enterAR();
+                        }
+                    });
 
-            // 4. Verifica a compatibilidade AR
-            modelViewer.addEventListener('load', () => {
-                if (modelViewer.arMode === 'none') {
-                    // Mensagem mais específica, pois o Quick Look não é uma opção agora.
-                    showMessage("ATENÇÃO: WebXR (câmara na web app) não é suportado neste dispositivo/navegador.");
-                } else if (modelViewer.arModes.includes('webxr')) {
-                    showMessage("Modo AR WebXR ativo. Clique no botão.");
+                    // Esconde o botão se a sessão AR já tiver sido iniciada ou se não for suportada
+                    scene.addEventListener('enter-vr', (evt) => {
+                        if (evt.detail.session.mode === 'immersive-ar') {
+                            arButton.style.display = 'none';
+                        }
+                    });
+                    scene.addEventListener('exit-vr', () => {
+                         arButton.style.display = 'block';
+                    });
                 }
             });
         });
