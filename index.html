@@ -78,9 +78,7 @@
         src="mouse.glb"
         alt="Modelo 3D do Rato de Gaming para Realidade Aumentada"
         ar
-        /* Permite que o model-viewer escolha o melhor modo, mas prioriza o WebXR.
-           Se o WebXR não for suportado, usará Quick Look/Scene Viewer, 
-           garantindo que o botão aparece e funciona. */
+        /* PRIORIDADE: webxr (câmara na web app). Fallbacks para garantir que o botão aparece. */
         ar-modes="webxr quick-look scene-viewer"
         shadow-intensity="1"
         camera-controls
@@ -90,8 +88,7 @@
         // Atributo opcional para definir a posição inicial da câmara
         camera-orbit="0deg 90deg 1m" 
     >
-        <!-- Botão customizado para iniciar a experiência AR. 
-             Este botão, devido ao atributo slot="ar-button", é o que ativa a câmara/RA. -->
+        <!-- Botão customizado para iniciar a experiência AR. -->
         <button id="ar-button" slot="ar-button" class="ar-button-style">
             Ver no seu Espaço (RA)
         </button>
@@ -103,7 +100,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const modelViewer = document.getElementById('ar-model');
-            // O URL foi atualizado para o link fornecido.
+            const arButton = document.getElementById('ar-button');
             const storeURL = "https://www.logitechg.com/pt-br"; 
 
             /**
@@ -114,58 +111,56 @@
                 const messageBox = document.getElementById('message-box');
                 messageBox.textContent = message;
                 messageBox.style.display = 'block';
-                // Adiciona um temporizador para esconder a caixa de mensagem
                 setTimeout(() => {
                     messageBox.style.opacity = 0;
                     setTimeout(() => {
                         messageBox.style.display = 'none';
-                        messageBox.style.opacity = 1; // Prepara para a próxima mensagem
+                        messageBox.style.opacity = 1; 
                     }, 300); 
-                }, 3000); // Exibe por 3 segundos
+                }, 3000); 
             }
             
-            // 1. Ouvir o evento de clique/toque no modelo 3D.
+            // 1. Ouvir o evento de clique/toque no MODELO 3D.
             modelViewer.addEventListener('click', (event) => {
-                // Se o target do evento NÃO for o próprio model-viewer, significa que foi um elemento aninhado (o botão AR, por exemplo).
-                // O botão AR deve ser ignorado para que ele possa ativar a câmara.
-                if (event.target !== modelViewer) {
+                
+                // --- CORREÇÃO PRINCIPAL: Impede redirecionamento se o clique for no botão AR. ---
+                // Verifica se o elemento clicado é o botão AR ou um filho dele.
+                if (arButton && arButton.contains(event.target)) {
+                    // Se o clique for no botão AR, a função nativa do model-viewer irá lidar com a câmara.
+                    // Nós simplesmente paramos o redirecionamento aqui.
+                    console.log("Clique no botão AR detetado, a permitir a abertura da câmara.");
                     return; 
                 }
+                // --- FIM DA CORREÇÃO ---
 
-                // Verifica se o modelo já está carregado
+                // Se chegou aqui, o clique foi no MODELO 3D.
                 if (!modelViewer.loaded) {
                     showMessage("O modelo 3D ainda está a carregar. Tente novamente.");
                     return;
                 }
                 
-                // --- Esta é a lógica de Compra/Redirecionamento, ativada APENAS no clique no 3D (área superior). ---
+                // Redirecionamento lógico
                 showMessage("Redirecionando para a loja online Logitech G...");
-                
-                // Linha de redirecionamento agora ativa.
                 window.location.href = storeURL; 
                 
                 console.log(`A redirecionar para: ${storeURL}`);
             });
             
-            // 2. Ouvir o evento quando o modo AR é ativado (câmara abre)
+            // 2. Ouvir o evento quando o modo AR é ativado.
             modelViewer.addEventListener('activate-ar', (event) => {
-                // CORREÇÃO: Mantenho este listener para mostrar a mensagem, mas 
-                // não uso preventDefault() para garantir que a câmara se abre.
-                
                 // Este bloco é executado quando a câmara é iniciada.
-                showMessage("Toque no modelo em Realidade Aumentada para ir para a loja.");
+                showMessage("Modelo em Realidade Aumentada. Toque para ir para a loja.");
             });
 
-            // 3. Verifica a compatibilidade AR
+            // 3. Verifica a compatibilidade AR (mantido para feedback do utilizador)
             modelViewer.addEventListener('load', () => {
                 if (modelViewer.arStatus === 'not-presenting' && modelViewer.arMode === 'none') {
-                    // Isto irá capturar dispositivos que não suportam AR.
                     showMessage("O seu dispositivo não suporta Realidade Aumentada. Apenas a visualização em 3D está disponível.");
                 }
             });
 
-            /* 4. REMOVIDO: O código que intercetava o clique do botão AR com event.stopPropagation() foi removido.
-               Agora, o clique no botão AR será tratado nativamente pelo <model-viewer> para abrir a câmara. */
+            /* O código que intercetava o clique com event.stopPropagation() no botão AR foi removido, 
+               pois estava a impedir a função nativa do botão de abrir a câmara. */
         });
     </script>
 </body>
