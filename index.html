@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador AR de Produtos</title>
+    
+    <!-- Importa o Model Viewer da Google, essencial para o 3D e AR -->
+    <script type="module" 
+        src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
+    </script>
+
+    <style>
+        /* Estilos globais para garantir que o model-viewer ocupe todo o ecrã */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', Arial, sans-serif;
+        }
+        
+        /* O componente Model Viewer deve ser 100% da viewport */
+        model-viewer {
+            width: 100%;
+            height: 100%;
+            background-color: #f0f0f0; /* Fundo visível apenas em modo 3D */
+            border-radius: 0;
+        }
+
+        /* Estilo para a caixa de mensagem (substitui a função alert()) */
+        #message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ffc107;
+            color: #333;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+            text-align: center;
+            font-weight: bold;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Estilo para o botão customizado de Realidade Aumentada (AR) */
+        .ar-button-style {
+            background-color: #3B82F6; /* Azul Primário */
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 12px;
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .ar-button-style:hover {
+            background-color: #2563EB;
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Componente principal que exibe o modelo 3D e ativa a Realidade Aumentada -->
+    <model-viewer 
+        id="ar-model"
+        src="./assets/mouse.glb"
+        alt="Modelo 3D do Rato de Gaming para Realidade Aumentada"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        shadow-intensity="1"
+        camera-controls
+        touch-action="pan-y"
+        auto-rotate
+        loading="eager"
+        // Atributo opcional para definir a posição inicial da câmara
+        camera-orbit="0deg 90deg 1m" 
+    >
+        <!-- Botão customizado para iniciar a experiência AR -->
+        <button slot="ar-button" class="ar-button-style">
+            Ver no seu Espaço (RA)
+        </button>
+    </model-viewer>
+    
+    <!-- Caixa para exibir mensagens ao utilizador -->
+    <div id="message-box"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const modelViewer = document.getElementById('ar-model');
+            // **IMPORTANTE:** Substitua este URL pelo link real da sua página de compra do produto.
+            const storeURL = "https://a-sua-loja.com/produto-exemplo-rato-gaming"; 
+
+            /**
+             * Função para exibir mensagens temporárias ao utilizador (substitui alert()).
+             * @param {string} message A mensagem a ser mostrada.
+             */
+            function showMessage(message) {
+                const messageBox = document.getElementById('message-box');
+                messageBox.textContent = message;
+                messageBox.style.display = 'block';
+                // Adiciona um temporizador para esconder a caixa de mensagem
+                setTimeout(() => {
+                    messageBox.style.opacity = 0;
+                    setTimeout(() => {
+                        messageBox.style.display = 'none';
+                        messageBox.style.opacity = 1; // Prepara para a próxima mensagem
+                    }, 300); 
+                }, 3000); // Exibe por 3 segundos
+            }
+
+            // 1. Ouvir o evento de clique/toque no modelo 3D.
+            // O evento 'click' é acionado tanto no modo 3D como depois de interagir com o modelo em RA.
+            modelViewer.addEventListener('click', (event) => {
+                // Verifica se o modelo já está carregado
+                if (!modelViewer.loaded) {
+                    showMessage("O modelo 3D ainda está a carregar. Tente novamente.");
+                    return;
+                }
+                
+                // Redirecionamento lógico
+                showMessage("Redirecionando para a loja online para finalizar a compra...");
+                
+                // Se a intenção é redirecionar, deve descomentar a linha abaixo.
+                // Atualmente está apenas a ser registado na consola para demonstração.
+                // window.location.href = storeURL; 
+                
+                console.log(`A redirecionar para (simulação): ${storeURL}`);
+                
+                // Nota: O redirecionamento real deve ser habilitado apenas quando a app estiver finalizada.
+            });
+
+            // 2. Verifica a compatibilidade AR
+            // A verificação ocorre após o componente Model Viewer ser inicializado.
+            modelViewer.addEventListener('load', () => {
+                if (modelViewer.arStatus === 'not-presenting' && modelViewer.arMode === 'none') {
+                    // Isto irá capturar dispositivos que não suportam AR.
+                    showMessage("O seu dispositivo não suporta Realidade Aumentada. Apenas a visualização em 3D está disponível.");
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>
