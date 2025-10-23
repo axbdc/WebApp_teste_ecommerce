@@ -78,7 +78,7 @@
         src="mouse.glb"
         alt="Modelo 3D do Rato de Gaming para Realidade Aumentada"
         ar
-        /* ATUALIZADO: Força WebXR para usar a câmara na web app. */
+        /* ATUALIZADO: FORÇA APENAS WEBXR (câmara na web app). */
         ar-modes="webxr" 
         shadow-intensity="1"
         camera-controls
@@ -121,8 +121,8 @@
             }
             
             // --- CORREÇÃO: INTERCETAÇÃO DO CLIQUE NO BOTÃO AR ---
+            // Isto impede que o clique no botão AR ative o listener de compra no modelViewer.
             arButton.addEventListener('click', (event) => {
-                // **CRÍTICO:** Pára a propagação do evento de clique para que não atinja o listener de compra no modelViewer.
                 event.stopPropagation();
                 
                 console.log("Clique no botão AR intercetado. A propagação foi parada, a câmara será solicitada.");
@@ -144,7 +144,7 @@
                     return;
                 }
                 
-                // --- CÓDIGO DE REDIRECIONAMENTO TOTALMENTE COMENTADO ---
+                // --- CÓDIGO DE REDIRECIONAMENTO PERMANECE COMENTADO ---
                 // showMessage("Redirecionando para a loja online Logitech G...");
                 // window.location.href = storeURL; 
                 // console.log(`A redirecionar para: ${storeURL}`);
@@ -158,11 +158,13 @@
 
             // 3. Verifica a compatibilidade AR (mantido para feedback do utilizador)
             modelViewer.addEventListener('load', () => {
-                // Se o AR não for compatível (apenas WebXR é forçado), mostra mensagem.
-                if (modelViewer.arStatus === 'not-presenting' && modelViewer.arMode === 'none') {
-                    showMessage("Apenas o modo 3D está disponível. O seu dispositivo não suporta WebAR.");
-                } else if (modelViewer.arMode === 'webxr') {
-                     showMessage("Dispositivo compatível com WebAR (câmara na web app).");
+                // Se o AR não for compatível com WebXR (agora é o único modo)
+                if (modelViewer.arMode === 'none') {
+                    showMessage("Apenas o modo 3D está disponível. O seu dispositivo não suporta WebXR (câmara na web app).");
+                } else if (modelViewer.arStatus === 'session-started') {
+                     // Esta mensagem é substituída pelo 'activate-ar'
+                } else {
+                    showMessage(`Modo WebXR pronto. Clique em 'Ver no seu Espaço (RA)'.`);
                 }
             });
         });
