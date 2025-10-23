@@ -78,8 +78,8 @@
         src="mouse.glb"
         alt="Modelo 3D do Rato de Gaming para Realidade Aumentada"
         ar
-        /* PRIORIDADE: webxr (câmara na web app). Fallbacks para garantir que o botão aparece. */
-        ar-modes="webxr quick-look scene-viewer"
+        /* ATUALIZADO: Força WebXR para usar a câmara na web app. */
+        ar-modes="webxr" 
         shadow-intensity="1"
         camera-controls
         touch-action="pan-y"
@@ -120,23 +120,20 @@
                 }, 3000); 
             }
             
-            // --- CORREÇÃO PRINCIPAL: NOVO LISTENER DEDICADO ---
-            // Este listener intercepta o clique no botão AR.
+            // --- CORREÇÃO: INTERCETAÇÃO DO CLIQUE NO BOTÃO AR ---
             arButton.addEventListener('click', (event) => {
-                // **CRÍTICO:** Pára a propagação do evento de clique, garantindo que
-                // ele NUNCA atinja o listener de compra do modelViewer.
+                // **CRÍTICO:** Pára a propagação do evento de clique para que não atinja o listener de compra no modelViewer.
                 event.stopPropagation();
                 
                 console.log("Clique no botão AR intercetado. A propagação foi parada, a câmara será solicitada.");
                 
-                // O atributo slot="ar-button" é quem faz a chamada nativa para abrir a câmara.
+                // O atributo slot="ar-button" faz a chamada nativa para abrir a câmara.
             });
 
-            // 1. Ouvir o evento de clique/toque no MODELO 3D (para redirecionamento/compra).
+            // 1. Ouvir o evento de clique/toque no MODELO 3D.
             modelViewer.addEventListener('click', (event) => {
                 
                 // Se o elemento clicado não for o próprio modelViewer, ignoramos.
-                // Isto garante que apenas cliques na área do modelo 3D (não no botão) são processados.
                 if (event.target !== modelViewer) {
                     return; 
                 }
@@ -147,8 +144,7 @@
                     return;
                 }
                 
-                // --- CÓDIGO DE REDIRECIONAMENTO COMENTADO PARA TESTE DA CÂMARA ---
-                // Redirecionamento lógico
+                // --- CÓDIGO DE REDIRECIONAMENTO TOTALMENTE COMENTADO ---
                 // showMessage("Redirecionando para a loja online Logitech G...");
                 // window.location.href = storeURL; 
                 // console.log(`A redirecionar para: ${storeURL}`);
@@ -157,13 +153,16 @@
             
             // 2. Ouvir o evento quando o modo AR é ativado (para feedback).
             modelViewer.addEventListener('activate-ar', (event) => {
-                showMessage("Modelo em Realidade Aumentada. Toque para ir para a loja.");
+                showMessage("A câmara WebAR está a ser iniciada. Toque no ecrã para posicionar o modelo.");
             });
 
             // 3. Verifica a compatibilidade AR (mantido para feedback do utilizador)
             modelViewer.addEventListener('load', () => {
+                // Se o AR não for compatível (apenas WebXR é forçado), mostra mensagem.
                 if (modelViewer.arStatus === 'not-presenting' && modelViewer.arMode === 'none') {
-                    showMessage("O seu dispositivo não suporta Realidade Aumentada. Apenas a visualização em 3D está disponível.");
+                    showMessage("Apenas o modo 3D está disponível. O seu dispositivo não suporta WebAR.");
+                } else if (modelViewer.arMode === 'webxr') {
+                     showMessage("Dispositivo compatível com WebAR (câmara na web app).");
                 }
             });
         });
