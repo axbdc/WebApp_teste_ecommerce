@@ -149,7 +149,8 @@
             
             // 2. Ouvir o evento quando o modo AR é ativado (câmara abre)
             modelViewer.addEventListener('activate-ar', (event) => {
-                event.preventDefault(); 
+                // CORREÇÃO: Removido event.preventDefault() para permitir que a função nativa do model-viewer 
+                // inicie a câmara corretamente.
                 
                 // Este bloco é executado quando a câmara é iniciada.
                 showMessage("Toque no modelo em Realidade Aumentada para ir para a loja.");
