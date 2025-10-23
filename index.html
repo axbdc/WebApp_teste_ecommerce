@@ -102,6 +102,9 @@
             const modelViewer = document.getElementById('ar-model');
             const arButton = document.getElementById('ar-button');
             const storeURL = "https://www.logitechg.com/pt-br"; 
+            
+            // NOVO: Flag para bloquear o redirecionamento quando o AR está a ser ativado (resolvendo o race condition)
+            let isActivatingAR = false;
 
             /**
              * Função para exibir mensagens temporárias ao utilizador (substitui alert()).
@@ -123,17 +126,19 @@
             // 1. Ouvir o evento de clique/toque no MODELO 3D.
             modelViewer.addEventListener('click', (event) => {
                 
-                // --- CORREÇÃO PRINCIPAL: Impede redirecionamento se o clique for no botão AR. ---
-                // Verifica se o elemento clicado é o botão AR ou um filho dele.
+                // VERIFICAÇÃO 1: Se o AR está a ser ativado, bloqueia o redirecionamento.
+                if (isActivatingAR) {
+                    console.log("Bloqueado: Tentativa de redirecionamento durante a ativação do AR.");
+                    return;
+                }
+                
+                // VERIFICAÇÃO 2: Se o clique foi no botão AR ou um filho dele, permite a ação nativa e para.
                 if (arButton && arButton.contains(event.target)) {
-                    // Se o clique for no botão AR, a função nativa do model-viewer irá lidar com a câmara.
-                    // Nós simplesmente paramos o redirecionamento aqui.
                     console.log("Clique no botão AR detetado, a permitir a abertura da câmara.");
                     return; 
                 }
-                // --- FIM DA CORREÇÃO ---
 
-                // Se chegou aqui, o clique foi no MODELO 3D.
+                // Se chegou aqui, o clique foi no MODELO 3D e o AR não está a ser ativado.
                 if (!modelViewer.loaded) {
                     showMessage("O modelo 3D ainda está a carregar. Tente novamente.");
                     return;
@@ -148,7 +153,16 @@
             
             // 2. Ouvir o evento quando o modo AR é ativado.
             modelViewer.addEventListener('activate-ar', (event) => {
-                // Este bloco é executado quando a câmara é iniciada.
+                // Ativa a flag para bloquear o listener de 'click' concorrente
+                isActivatingAR = true; 
+                
+                // Desativa a flag após um curto período de tempo (500ms), 
+                // permitindo que os cliques subsequentes voltem a funcionar para compra.
+                setTimeout(() => {
+                    isActivatingAR = false;
+                    console.log("Flag de AR desativada. Cliques de redirecionamento reativados.");
+                }, 500); 
+
                 showMessage("Modelo em Realidade Aumentada. Toque para ir para a loja.");
             });
 
@@ -158,9 +172,6 @@
                     showMessage("O seu dispositivo não suporta Realidade Aumentada. Apenas a visualização em 3D está disponível.");
                 }
             });
-
-            /* O código que intercetava o clique com event.stopPropagation() no botão AR foi removido, 
-               pois estava a impedir a função nativa do botão de abrir a câmara. */
         });
     </script>
 </body>
