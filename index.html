@@ -20,7 +20,6 @@
 
     <!-- Scripts do A-Frame e AR.js -->
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-    <!-- Nota: Usaremos o aframe-ar.js, que suporta World Tracking (markerless) -->
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
     <!-- Componentes de gestos (movimento, rotação) -->
@@ -38,21 +37,91 @@
         .message-overlay {
             z-index: 10;
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.8); /* Fundo escuro para foco */
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        /* Estilo para o conteúdo central do overlay */
+        .message-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             text-align: center;
         }
+
+        /* Estilo do botão */
+        .start-button {
+            margin-top: 1.5rem;
+            padding: 0.75rem 1.5rem;
+            background-color: #4CAF50; /* Verde */
+            color: white;
+            font-weight: bold;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .start-button:hover {
+            background-color: #45a049;
+        }
     </style>
+    
+    <script>
+        // Função para iniciar a cena (chamada pelo botão)
+        function startGame() {
+            const overlay = document.getElementById('overlay');
+            const scene = document.getElementById('scene');
+            
+            // Oculta a overlay
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 300); // Garante que a transição termine
+
+            // Inicia explicitamente a câmera e o AR.js (útil em alguns browsers)
+            scene.setAttribute('arjs', 'sourceType: webcam; trackingMethod: best; debugUIEnabled: false;');
+        }
+
+        // Listener de erro para o modelo GLTF
+        AFRAME.registerComponent('model-error-handler', {
+            init: function () {
+                this.el.addEventListener('model-error', function (e) {
+                    console.error('Erro ao carregar o modelo GLTF:', e);
+                    const errorBox = document.getElementById('error-message');
+                    if (errorBox) {
+                        errorBox.textContent = 'ERRO: Não foi possível carregar o modelo 3D (verifique o caminho do GLB).';
+                        errorBox.classList.remove('hidden');
+                    }
+                });
+            }
+        });
+    </script>
 </head>
 
 <body class="m-0 overflow-hidden font-sans">
     
-    <!-- Mensagem de orientação para o usuário -->
-    <div class="message-overlay bg-white/70 p-4 rounded-lg shadow-xl backdrop-blur-sm">
-        <p class="text-lg font-bold text-gray-800">Modelo 3D no Ambiente (World Tracking)</p>
-        <p class="text-sm text-gray-600 mt-1">O modelo aparecerá 2 metros à sua frente. Use os dedos para mover, girar e dimensionar.</p>
+    <!-- OVERLAY DE INICIALIZAÇÃO -->
+    <div id="overlay" class="message-overlay">
+        <div class="message-content">
+            <p class="text-xl font-bold text-gray-800">Realidade Aumentada (World Tracking)</p>
+            <p class="text-sm text-gray-600 mt-2">Isto requer acesso à câmara. O modelo aparecerá no ambiente ao seu redor.</p>
+            
+            <!-- Mensagem de erro oculta -->
+            <p id="error-message" class="text-sm font-semibold text-red-600 mt-4 hidden"></p>
+
+            <button class="start-button" onclick="startGame()">
+                Iniciar AR
+            </button>
+            <p class="text-xs text-gray-500 mt-3">Depois de iniciar, use um ou dois dedos no ecrã para interagir com o modelo (mover/girar/escalar).</p>
+        </div>
     </div>
 
     <a-scene
@@ -60,32 +129,30 @@
         loading-screen="enabled: false;"
         renderer="logarithmicDepthBuffer: true;"
         
-        <!-- Configuração AR.js para World Tracking/Slam-Based AR -->
-        <!-- Removemos todas as menções a 'marker' ou 'pattern' -->
-        <!-- O parâmetro 'trackingMethod: best' é suficiente para habilitar o World Tracking sem marcadores -->
-        arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
-        
+        <!-- Inicialmente, não definimos 'arjs' aqui. Ele será definido pela função startGame(). -->
+        <!-- Isto ajuda a contornar restrições de inicialização de câmara em alguns browsers. -->
         id="scene"
         embedded
         gesture-detector
+        visible="false" <!-- Oculta a cena até ser iniciada, para evitar flashes -->
     >
         <a-assets>
-            <!-- Substituí o caminho local por um placeholder GLB para garantir que o código funcione. -->
-            <!-- TROQUE ESTE URL PELO SEU GLB COMPLETO: "assets/asset.glb" -->
+            <!-- RESTAURADO: Usando o seu caminho original. É CRUCIAL que este GLB esteja acessível. -->
             <a-asset-item
                 id="animated-asset"
-                src="mouse.glb"
+                src="mouse.glb" 
             ></a-asset-item>
         </a-assets>
 
         <!-- O MODELO 3D AGORA ESTÁ DIRETAMENTE DENTRO DA CENA -->
-        <!-- Ele será renderizado no mundo real, independentemente de um marcador. -->
         <a-entity
             id="main-model"
             gltf-model="#animated-asset"
             
+            <!-- Adiciona o componente de tratamento de erro -->
+            model-error-handler 
+            
             <!-- Posicionamento inicial: 0.5m acima do chão, 2m à frente (0 -0.5 -2) -->
-            <!-- Ajuste a posição Y se o modelo estiver afundando no chão. -->
             position="0 -0.5 -2" 
             
             scale="1 1 1"
